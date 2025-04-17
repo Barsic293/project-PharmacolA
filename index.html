@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmacolA - Программный продукт для расчета биологической активности веществ</title>
+    <style>
+        :root {
+            --primary-color: #2c7be5;
+            --secondary-color: #6e84a3;
+            --accent-color: #00a876;
+            --dark-color: #283e59;
+            --light-color: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f5f7fa;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header styles */
+        header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+        }
+        
+        .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .logo-tagline {
+            font-size: 14px;
+            color: var(--secondary-color);
+            margin-top: 3px;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        nav li {
+            margin-left: 25px;
+        }
+        
+        nav a {
+            text-decoration: none;
+            color: var(--dark-color);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        nav a:hover {
+            color: var(--primary-color);
+        }
+        
+        /* Page styles */
+        .page {
+            display: none;
+            padding: 40px 0;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .page-title {
+            font-size: 32px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+        
+        .page-subtitle {
+            font-size: 18px;
+            color: var(--secondary-color);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        /* Content styles */
+        .content-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-bottom: 2px solid var(--light-color);
+            padding-bottom: 10px;
+        }
+        
+        .highlight {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .accent {
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+        
+        b {
+            font-weight: 700;
+        }
+        
+        i {
+            font-style: italic;
+        }
+        
+        /* Link styles */
+        a.external-link {
+            color: var(--accent-color);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--accent-color);
+            transition: all 0.3s;
+        }
+        
+        a.external-link:hover {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        /* Media styles */
+        .media-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .media-item {
+            flex: 1 1 300px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .media-item img, .media-item video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .media-caption {
+            padding: 15px;
+            background-color: white;
+            font-size: 14px;
+            color: var(--secondary-color);
+        }
+        
+        /* List styles */
+        ul.feature-list {
+            padding-left: 25px;
+        }
+        
+        ul.feature-list li {
+            margin-bottom: 12px;
+            position: relative;
+            padding-left: 25px;
+        }
+        
+        ul.feature-list li:before {
+            content: "•";
+            color: var(--primary-color);
+            font-size: 20px;
+            position: absolute;
+            left: 0;
+            top: -2px;
+        }
+        
+        /* Footer styles */
+        footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 40px 0;
+            margin-top: 60px;
+        }
+        
+        .footer-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        
+        .footer-section {
+            flex: 1 1 250px;
+            margin-bottom: 30px;
+        }
+        
+        .footer-title {
+            color: white;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .footer-links {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+        
+        .footer-links a {
+            color: #bbc7d6;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            nav ul {
+                margin-top: 20px;
+                justify-content: center;
+            }
+            
+            nav li {
+                margin: 0 10px;
+            }
+            
+            .page-title {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="30" fill="#2c7be5" opacity="0.2"/>
+                        <circle cx="50" cy="30" r="10" fill="#2c7be5"/>
+                        <circle cx="70" cy="50" r="10" fill="#2c7be5"/>
+                        <circle cx="50" cy="70" r="10" fill="#2c7be5"/>
+                        <circle cx="30" cy="50" r="10" fill="#2c7be5"/>
+                        <line x1="50" y1="40" x2="50" y2="60" stroke="#2c7be5" stroke-width="3"/>
+                        <line x1="40" y1="50" x2="60" y2="50" stroke="#2c7be5" stroke-width="3"/>
+                        <path d="M20 20 L20 80 L40 80 Q50 80 50 70 Q50 60 40 60 L20 60" 
+                              fill="none" stroke="#2c7be5" stroke-width="4"/>
+                    </svg>
+                    <div>
+                        <div class="logo-text">PharmacolA</div>
+                        <div class="logo-tagline">Инновации в расчете биологической активности</div>
+                    </div>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="#" onclick="showPage('home')">Главная</a></li>
+                        <li><a href="#" onclick="showPage('about')">О проекте</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Главная страница -->
+    <div id="home" class="page active">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">PharmacolA — революция в фармакологическом дизайне</h1>
+                <p class="page-subtitle">Программный комплекс для расчета и прогнозирования биологической активности веществ нового поколения</p>
+            </div>
+            
+            <div class="content-section">
+                <div class="media-container">
+                    <div class="media-item">
+                        <img src="https://via.placeholder.com/600x400/2c7be5/ffffff?text=Молекулярное+моделирование" alt="Молекулярное моделирование">
+                        <div class="media-caption">3D-моделирование молекулярных структур</div>
+                    </div>
+                    <div class="media-item">
+                        <img src="https://via.placeholder.com/600x400/00a876/ffffff?text=Биологическая+активность" alt="Биологическая активность">
+                        <div class="media-caption">Визуализация биологической активности</div>
+                    </div>
+                </div>
+                
+                <p><b>PharmacolA</b> — это <i>инновационная платформа</i>, которая позволяет исследователям:</p>
+                <ul class="feature-list">
+                    <li>Прогнозировать биологическую активность соединений <b>до их синтеза</b></li>
+                    <li>Анализировать <i>структурно-активные взаимосвязи</i> (SAR)</li>
+                    <li>Оптимизировать молекулярные структуры для <b>максимальной эффективности</b></li>
+                    <li>Сокращать время и затраты на <i>доклинические исследования</i></li>
+                </ul>
+                
+                <h2 class="section-title">Ключевые преимущества</h2>
+                <div class="media-container">
+                    <div class="media-item">
+                        <img src="https://via.placeholder.com/300x200/2c7be5/ffffff?text=Точность" alt="Точность расчетов">
+                        <div class="media-caption">Высокая точность прогнозирования</div>
+                    </div>
+                    <div class="media-item">
+                        <img src="https://via.placeholder.com/300x200/00a876/ffffff?text=Скорость" alt="Скорость работы">
+                        <div class="media-caption">Быстрые расчеты</div>
+                    </div>
+                    <div class="media-item">
+                        <img src="https://via.placeholder.com/300x200/6e84a3/ffffff?text=База+данных" alt="Обширная база данных">
+                        <div class="media-caption">Обширная база данных</div>
+                    </div>
+                </div>
+                
+                <h2 class="section-title">Полезные ресурсы</h2>
+                <p>Рекомендуем ознакомиться с этими источниками:</p>
+                <ul class="feature-list">
+                    <li><a href="https://www.ncbi.nlm.nih.gov/" class="external-link" target="_blank">PubMed</a> - база медицинских публикаций</li>
+                    <li><a href="https://www.rcsb.org/" class="external-link" target="_blank">Protein Data Bank</a> - база данных белковых структур</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- О проекте -->
+    <div id="about" class="page">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">О проекте PharmacolA</h1>
+                <p class="page-subtitle">Инновационный подход к расчету биологической активности веществ</p>
+            </div>
+            
+            <div class="content-section">
+                <h2 class="section-title">Что такое PharmacolA?</h2>
+                <p><b>PharmacolA</b> — это программный продукт, который <i>количественно оценивает</i> величину биологической активности веществ, начиная со стадии планирования синтеза. Платформа работает как с новыми продуктами органического синтеза, так и с неизвестными науке веществами.</p>
+                
+                <div class="media-container">
+                    <div class="media-item">
+                        <img src="https://via.placeholder.com/600x400/2c7be5/ffffff?text=Молекулярный+дизайн" alt="Молекулярный дизайн">
+                        <div class="media-caption">Процесс молекулярного дизайна в PharmacolA</div>
+                    </div>
+                </div>
+                
+                <h2 class="section-title">Наша миссия</h2>
+                <p>Мы стремимся <b>революционизировать</b> процесс разработки новых лекарственных средств, предоставляя исследователям:</p>
+                <ul class="feature-list">
+                    <li><i>Точные</i> инструменты для прогнозирования активности</li>
+                    <li><i>Экономию</i> времени и ресурсов на ранних этапах исследований</li>
+                    <li><i>Доступ</i> к современным методам компьютерного моделирования</li>
+                    <li><i>Поддержку</i> в принятии научных решений</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3 class="footer-title">PharmacolA</h3>
+                    <p>Программный продукт для расчета биологической активности веществ</p>
+                </div>
+                <div class="footer-section">
+                    <h3 class="footer-title">Навигация</h3>
+                    <ul class="footer-links">
+                        <li><a href="#" onclick="showPage('home')">Главная</a></li>
+                        <li><a href="#" onclick="showPage('about')">О проекте</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Функция для переключения между страницами
+        function showPage(pageId) {
+            // Скрыть все страницы
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Показать выбранную страницу
+            document.getElementById(pageId).classList.add('active');
+            
+            // Прокрутить вверх
+            window.scrollTo(0, 0);
+        }
+        
+        // Инициализация - показать главную страницу
+        document.addEventListener('DOMContentLoaded', function() {
+            showPage('home');
+        });
+    </script>
+</body>
+</html>
