@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Химический калькулятор</title>
+    <script src="https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #f1f1f1;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab.active {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-bottom: 1px solid #fff;
+            margin-bottom: -1px;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+            background: #fff;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        input, button {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        .error {
+            color: red;
+        }
+        .editor-container {
+            display: flex;
+            gap: 20px;
+        }
+        #molEditor {
+            width: 60%;
+            height: 300px;
+            border: 1px solid #ddd;
+        }
+        #molInfo {
+            width: 40%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+        }
+        .smiles-display {
+            word-break: break-all;
+        }
+        .loading {
+            color: #3498db;
+        }
+        .examples {
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        .global-error {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            max-width: 500px;
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+            background: #ffebee;
+            padding: 10px 15px;
+            border-radius: 4px;
+            border: 1px solid #c62828;
+            font-size: 0.9em;
+        }
+        .error-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .error-actions button {
+            width: auto;
+            padding: 5px 10px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingOverlay" style="display: none;">
+        <div style="text-align: center;">
+            <h3>Загрузка химического движка...</h3>
+            <p>Пожалуйста, подождите</p>
+        </div>
+    </div>
+
+    <h1>Химический калькулятор</h1>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="openTab('molarMass')">Молярная масса</div>
+        <div class="tab" onclick="openTab('logP')">Липофильность (logP)</div>
+        <div class="tab" onclick="openTab('editor')">Редактор молекул</div>
+    </div>
+    
+    <!-- Калькулятор молярной массы -->
+    <div id="molarMass" class="tab-content active">
+        <h2>Калькулятор молярной массы</h2>
+        <p>Введите химическую формулу (например, H2O, C6H12O6):</p>
+        <input type="text" id="formulaInput" placeholder="H2SO4">
+        <button onclick="calculateMolarMass()">Рассчитать</button>
+        <div id="massResult" class="result"></div>
+    </div>
+    
+    <!-- Калькулятор липофильности -->
+    <div id="logP" class="tab-content">
+        <h2>Калькулятор липофильности (logP)</h2>
+        <p>Введите SMILES молекулы (например, c1ccccc1 для бензола):</p>
+        <input type="text" id="smilesInput" placeholder="c1ccccc1">
+        <button onclick="calculateLogP()">Рассчитать logP</button>
+        <div class="examples">
+            <strong>Примеры:</strong> 
+            <a href="#" onclick="document.getElementById('smilesInput').value='O';return false;">Вода</a> | 
+            <a href="#" onclick="document.getElementById('smilesInput').value='CCO';return false;">Этанол</a> | 
+            <a href="#" onclick="document.getElementById('smilesInput').value='c1ccccc1';return false;">Бензол</a> | 
+            <a href="#" onclick="document.getElementById('smilesInput').value='CN1C=NC2=C1C(=O)N(C(=O)N2C)C';return false;">Кофеин</a>
+        </div>
+        <div id="logPResult" class="result"></div>
+    </div>
+    
+    <!-- Редактор молекул -->
+    <div id="editor" class="tab-content">
+        <h2>Редактор молекул</h2>
+        <div class="editor-container">
+            <div id="molEditor"></div>
+            <div id="molInfo">
+                <h3>Информация о молекуле</h3>
+                <p><strong>SMILES:</strong> <span id="molSmiles" class="smiles-display">-</span></p>
+                <p><strong>Формула:</strong> <span id="molFormula">-</span></p>
+                <p><strong>Молярная масса:</strong> <span id="molMass">-</span></p>
+                <p><strong>logP:</strong> <span id="molLogP">-</span></p>
+            </div>
+        </div>
+        <div style="margin-top: 20px;">
+            <button onclick="clearEditor()">Очистить</button>
+            <button onclick="updateMolInfo()">Обновить информацию</button>
+        </div>
+    </div>
+
+    <script>
+        // Глобальные переменные
+        let RDKit;
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+
+        // Функция отображения ошибки
+        function showError(message, isFatal = false) {
+            // Удаляем предыдущие сообщения об ошибках
+            const existingErrors = document.querySelectorAll('.global-error');
+            existingErrors.forEach(el => el.remove());
+
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'global-error';
+            
+            let content = `<strong style="color: #c62828;">Ошибка:</strong> ${message}`;
+            
+            if (isFatal) {
+                content += `<div class="error-actions">
+                    <button onclick="location.reload()">Обновить страницу</button>
+                    <button onclick="retryLoadRDKit()">Попробовать снова</button>
+                </div>`;
+            }
+            
+            errorDiv.innerHTML = content;
+            document.body.prepend(errorDiv);
+        }
+
+        // Функция повторной попытки загрузки
+        async function retryLoadRDKit() {
+            if (retryCount >= MAX_RETRIES) {
+                showError("Не удалось загрузить химический движок после нескольких попыток. Пожалуйста, обновите страницу позже.", true);
+                return;
+            }
+
+            retryCount++;
+            showLoading(true);
+            
+            try {
+                await initRDKit();
+                showError("Химический движок успешно загружен!", false);
+                setTimeout(() => {
+                    const errors = document.querySelectorAll('.global-error');
+                    errors.forEach(el => el.remove());
+                }, 3000);
+                
+                // Переинициализируем редактор, если он нужен
+                if (document.getElementById('editor').classList.contains('active') && !window.molEditor) {
+                    initEditor();
+                }
+            } catch (error) {
+                console.error(`Попытка ${retryCount} не удалась:`, error);
+                showError(`Ошибка загрузки (попытка ${retryCount}/${MAX_RETRIES}). Попробуйте снова.`, true);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Показать/скрыть индикатор загрузки
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+        }
+
+        // Инициализация RDKit с улучшенной обработкой ошибок
+        async function initRDKit() {
+            if (!window.RDKit) {
+                showLoading(true);
+                try {
+                    console.log("Начало загрузки RDKit...");
+                    window.RDKit = await window.initRDKitModule();
+                    console.log("RDKit успешно загружен");
+                    showLoading(false);
+                    return window.RDKit;
+                } catch (error) {
+                    console.error("Ошибка загрузки RDKit:", error);
+                    showLoading(false);
+                    throw error;
+                }
+            }
+            return window.RDKit;
+        }
+        
+        // Инициализация редактора молекул
+        function initEditor() {
+            if (!RDKit) return;
+            try {
+                const editor = document.getElementById('molEditor');
+                window.molEditor = RDKit.MolEditor(editor, {
+                    allowEditing: true,
+                    showToolbar: true,
+                    showStereoFlags: true
+                });
+                window.molEditor.addEventListener('change', updateMolInfo);
+            } catch (error) {
+                console.error("Ошибка инициализации редактора:", error);
+                showError("Не удалось загрузить редактор молекул", false);
+            }
+        }
+        
+        // Переключение вкладок
+        async function openTab(tabName) {
+            const tabs = document.getElementsByClassName('tab-content');
+            for (let tab of tabs) {
+                tab.classList.remove('active');
+            }
+            document.getElementById(tabName).classList.add('active');
+            
+            const tabButtons = document.getElementsByClassName('tab');
+            for (let button of tabButtons) {
+                button.classList.remove('active');
+            }
+            event.currentTarget.classList.add('active');
+            
+            if (tabName === 'editor' && !window.molEditor) {
+                try {
+                    if (!RDKit) {
+                        await initRDKit();
+                    }
+                    initEditor();
+                } catch (error) {
+                    console.error("Ошибка при открытии редактора:", error);
+                    showError("Не удалось загрузить редактор молекул", true);
+                }
+            }
+        }
+        
+        // Расчет молярной массы
+        async function calculateMolarMass() {
+            const formula = document.getElementById('formulaInput').value.trim();
+            const resultDiv = document.getElementById('massResult');
+            
+            if (!formula) {
+                resultDiv.innerHTML = '<span class="error">Введите формулу!</span>';
+                return;
+            }
+            
+            try {
+                const mass = getMolarMass(formula);
+                resultDiv.innerHTML = `<strong>Молярная масса ${formula}:</strong> ${mass.toFixed(2)} г/моль`;
+            } catch (e) {
+                resultDiv.innerHTML = `<span class="error">Ошибка: ${e.message}</span>`;
+            }
+        }
+        
+        // Функция расчета молярной массы
+        function getMolarMass(formula) {
+            const atomicWeights = {
+                'H': 1.01, 'He': 4.00, 'Li': 6.94, 'Be': 9.01, 'B': 10.81,
+                'C': 12.01, 'N': 14.01, 'O': 16.00, 'F': 19.00, 'Ne': 20.18,
+                'Na': 22.99, 'Mg': 24.31, 'Al': 26.98, 'Si': 28.09, 'P': 30.97,
+                'S': 32.07, 'Cl': 35.45, 'K': 39.10, 'Ca': 40.08,
+                'Fe': 55.85, 'Cu': 63.55, 'Zn': 65.38, 'Br': 79.90, 'I': 126.90
+            };
+            
+            let totalMass = 0;
+            let i = 0;
+            
+            while (i < formula.length) {
+                // Пропускаем небуквенные символы в начале
+                while (i < formula.length && !/[A-Za-z]/.test(formula[i])) {
+                    i++;
+                }
+                
+                if (i >= formula.length) break;
+                
+                // Получаем символ элемента
+                let element = formula[i++];
+                
+                // Проверяем следующую букву (для элементов из двух букв)
+                if (i < formula.length && /[a-z]/.test(formula[i])) {
+                    element += formula[i++];
+                }
+                
+                // Получаем количество атомов
+                let countStr = '';
+                while (i < formula.length && /[0-9]/.test(formula[i])) {
+                    countStr += formula[i++];
+                }
+                
+                const count = countStr ? parseInt(countStr) : 1;
+                
+                // Проверяем, известен ли элемент
+                if (!atomicWeights[element]) {
+                    throw new Error(`Неизвестный элемент: ${element}`);
+                }
+                
+                totalMass += atomicWeights[element] * count;
+            }
+            
+            if (totalMass === 0) {
+                throw new Error('Не удалось распознать формулу');
+            }
+            
+            return totalMass;
+        }
+        
+        // Расчет logP
+        async function calculateLogP() {
+            const smiles = document.getElementById('smilesInput').value.trim();
+            const resultDiv = document.getElementById('logPResult');
+            
+            // Очищаем предыдущие результаты
+            resultDiv.innerHTML = '';
+            
+            if (!smiles) {
+                resultDiv.innerHTML = '<span class="error">Введите SMILES молекулы!</span>';
+                return;
+            }
+
+            try {
+                // Проверяем, что RDKit загружен
+                if (!window.RDKit) {
+                    resultDiv.innerHTML = '<span class="loading">Загрузка химического движка...</span>';
+                    await initRDKit();
+                }
+                
+                const RDKit = window.RDKit;
+                
+                // Проверяем валидность SMILES
+                if (!RDKit.is_valid_smiles(smiles)) {
+                    throw new Error("Некорректный формат SMILES");
+                }
+                
+                // Создаем молекулу
+                const mol = RDKit.get_mol(smiles);
+                if (!mol) {
+                    throw new Error("Не удалось создать молекулу из SMILES");
+                }
+                
+                // Вычисляем logP
+                const logP = RDKit.Crippen_get_log_p(mol);
+                
+                // Вычисляем другие полезные параметры
+                const molFormula = mol.get_molecular_formula();
+                const molWeight = mol.get_molecular_weight().toFixed(2);
+                
+                // Форматируем результат
+                resultDiv.innerHTML = `
+                    <strong>Результаты для:</strong> ${smiles}<br>
+                    <strong>Молекулярная формула:</strong> ${molFormula}<br>
+                    <strong>Молярная масса:</strong> ${molWeight} г/моль<br>
+                    <strong>Расчетный logP:</strong> ${logP.toFixed(4)}<br><br>
+                    <small>Метод расчета: Crippen's method (RDKit)</small>
+                `;
+                
+                // Освобождаем память
+                mol.delete();
+                
+            } catch (error) {
+                console.error("Ошибка расчета logP:", error);
+                resultDiv.innerHTML = `
+                    <span class="error">Ошибка расчета для "${smiles}":</span><br>
+                    ${error.message}<br><br>
+                    <small>Проверьте правильность SMILES-нотации</small>
+                `;
+                
+                // Если ошибка связана с RDKit, предлагаем перезагрузить
+                if (error.message.includes("RDKit") || !window.RDKit) {
+                    showError("Проблема с химическим движком", true);
+                }
+            }
+        }
+        
+        // Обновление информации о молекуле в редакторе
+        async function updateMolInfo() {
+            if (!window.molEditor) return;
+            
+            try {
+                if (!window.RDKit) {
+                    await initRDKit();
+                }
+                
+                const mol = window.molEditor.get_mol();
+                
+                if (mol) {
+                    const smiles = mol.get_smiles();
+                    const formula = mol.get_molecular_formula();
+                    const mass = mol.get_molecular_weight();
+                    const logP = window.RDKit.Crippen_get_log_p(mol);
+                    
+                    document.getElementById('molSmiles').textContent = smiles;
+                    document.getElementById('molFormula').textContent = formula;
+                    document.getElementById('molMass').textContent = mass.toFixed(2) + ' г/моль';
+                    document.getElementById('molLogP').textContent = logP.toFixed(4);
+                    
+                    mol.delete();
+                } else {
+                    document.getElementById('molSmiles').textContent = '-';
+                    document.getElementById('molFormula').textContent = '-';
+                    document.getElementById('molMass').textContent = '-';
+                    document.getElementById('molLogP').textContent = '-';
+                }
+            } catch (error) {
+                console.error('Ошибка при обновлении информации:', error);
+                showError("Ошибка при обновлении информации о молекуле", false);
+            }
+        }
+        
+        // Очистка редактора
+        function clearEditor() {
+            if (window.molEditor) {
+                window.molEditor.clear();
+                updateMolInfo();
+            }
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                showLoading(true);
+                await initRDKit();
+                
+                // Автоматически фокусируем поле ввода SMILES
+                document.getElementById('smilesInput').focus();
+                
+                // Прячем индикатор загрузки
+                setTimeout(() => showLoading(false), 500);
+                
+            } catch (error) {
+                console.error("Ошибка инициализации:", error);
+                showError("Не удалось загрузить химический движок", true);
+                showLoading(false);
+            }
+        });
+    </script>
+</body>
+</html>
